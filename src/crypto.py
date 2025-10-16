@@ -1,14 +1,23 @@
-from getpass import getpass
 from argon2.low_level import hash_secret_raw, Type
 import os
-from storage import init_db, vault_exists, get_vault_salt, set_vault_salt
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes, AESGCM
-from cryptography.hazmat.backends import default_backend
+import logging
+from typing import Tuple
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+# Minimal logging setup (library-safe): default WARNING, opt-in DEBUG for devs
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    logger.addHandler(logging.NullHandler())
 
 def derive_master_key(password: str, salt: bytes) -> bytes:
     """
     Derive a 32-byte master key from a password and salt using Argon2id.
     """
+    if not isinstance(password, str):
+        raise TypeError("password must be str")
+    if not isinstance(salt, (bytes, bytearray)):
+        raise TypeError("salt must be bytes")
+
     key = hash_secret_raw(
         secret=password.encode(),
         salt=salt,
@@ -18,33 +27,10 @@ def derive_master_key(password: str, salt: bytes) -> bytes:
         hash_len=32,         # AES-256 key
         type=Type.ID
     )
+    logger.debug("Derived master key of length %d bytes", len(key))
     return key
 
-# -------------------- Main flow --------------------
-if __name__ == "__main__":
-    # Initialize the database
-    init_db()
-
-    # Check if vault salt exists
-    if vault_exists():
-        salt = get_vault_salt()
-        print(f"Vault salt found: {salt.hex()}")
-    else:
-        salt = os.urandom(16)
-        set_vault_salt(salt)
-        print(f"New vault created with salt: {salt.hex()}")
-
-    # Ask user for password
-    password = getpass("Enter your password: ")
-
-    # Derive key
-    master_key = derive_master_key(password, salt)
-    print(f"Derived key (hex): {master_key.hex()}")  # only for testing
-
-
-
-    
-def encrypt(plaintext: bytes, key: bytes):
+def encrypt(plaintext: bytes, key: bytes) -> Tuple[bytes, bytes, bytes]:
     """
     Encrypt plaintext with AES-256-GCM using `key`.
     Returns: (nonce: bytes, ciphertext: bytes, tag: bytes)
@@ -68,6 +54,10 @@ def encrypt(plaintext: bytes, key: bytes):
     tag = ct_and_tag[-16:]
 
     # 5. Return the three components (all bytes)
+    logger.debug(
+        "Encrypted payload with nonce length %d, ciphertext length %d, tag length %d",
+        len(nonce), len(ciphertext), len(tag),
+    )
     return nonce, ciphertext, tag
 
 
@@ -85,4 +75,5 @@ def decrypt(nonce: bytes, ciphertext: bytes, tag: bytes, key: bytes) -> bytes:
 
     # This will raise cryptography.exceptions.InvalidTag on tamper/wrong key
     plaintext = aesgcm.decrypt(nonce, ct_and_tag, None)
+    logger.debug("Decrypted payload with plaintext length %d", len(plaintext))
     return plaintext
