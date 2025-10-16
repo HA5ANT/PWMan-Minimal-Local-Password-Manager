@@ -14,6 +14,7 @@ from .storage import (
     delete_entry,
 )
 from .crypto import derive_master_key, encrypt, decrypt
+from cryptography.exceptions import InvalidTag
 
 
 def cmd_init(db_path: str) -> int:
@@ -73,9 +74,15 @@ def cmd_view(db_path: str, entry_id: int) -> int:
         return 1
 
     key = _derive_key_from_db(db_path)
+    nonce = row.get("nonce")
+    ciphertext = row.get("ciphertext")
+    tag = row.get("tag")
+    if not all(isinstance(x, (bytes, bytearray)) for x in (nonce, ciphertext, tag)):
+        print("Stored entry is invalid or corrupted (expected binary data).")
+        return 2
     try:
-        plaintext = decrypt(row["nonce"], row["ciphertext"], row["tag"], key)
-    except Exception:
+        plaintext = decrypt(nonce, ciphertext, tag, key)
+    except InvalidTag:
         print("Decryption failed — wrong master password or data corrupted.")
         return 2
 
