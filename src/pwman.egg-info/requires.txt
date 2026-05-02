@@ -1,0 +1,6 @@
+argon2-cffi==25.1.0
+cryptography==47.0.0
+colorama==0.4.6
+
+[dev]
+pytest==9.0.3

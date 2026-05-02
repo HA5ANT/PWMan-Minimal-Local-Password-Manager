@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+src/__init__.py
+src/auth.py
+src/cli.py
+src/crypto.py
+src/models.py
+src/storage.py
+src/pwman.egg-info/PKG-INFO
+src/pwman.egg-info/SOURCES.txt
+src/pwman.egg-info/dependency_links.txt
+src/pwman.egg-info/entry_points.txt
+src/pwman.egg-info/requires.txt
+src/pwman.egg-info/top_level.txt
+tests/test_crypto_storage.py

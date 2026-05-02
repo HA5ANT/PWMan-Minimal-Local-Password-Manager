@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pwman"
+version = "0.1.0"
+description = "Minimal Local Password Manager"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "argon2-cffi==25.1.0",
+    "cryptography==47.0.0",
+    "colorama==0.4.6",
+    "questionary>=2.0.1",
+    "rich>=13.0.0",
+]
+
+[tool.setuptools]
+packages = ["src"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.0.3",
+]
+
+[project.scripts]
+pwman = "src.cli:main"

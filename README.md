@@ -1,105 +1,78 @@
-## 🔐 PWMan — Minimal Local Password Manager
+# 🔐 PWMan — Minimal Local Password Manager
 
-PWMan is a small, offline password manager you run from the command line. It uses modern, safe primitives and stores encrypted entries in a local SQLite database.
+PWMan is a lightweight, offline, and highly secure password manager for Windows. It features a conversational, interactive CLI with a focus on cryptographic integrity and multiple vault support.
 
-### What it uses
-- Argon2id for key derivation (produces a 32‑byte AES‑256 key)
-- AES‑256‑GCM for authenticated encryption (AEAD)
-- SQLite for local storage
+## 🛠 Features
+- **Auto-Lock Security**: Session automatically clears master key after inactivity (Timer currently in development).
+- **Contextual Menu**: Flattened, state-aware navigation (Vault vs. Entry modes).
+- **Transient Display**: Secrets clear from screen with a **visible 10s countdown**.
+- **Rich UI**: High-end terminal experience with professional color palettes and progress spinners.
+- **Multi-Vault Support**: Create, open, and delete multiple encrypted vaults (`.db` files) with ease.
+- **Strong Encryption**: Argon2id for key derivation and AES-256-GCM for authenticated encryption.
+- **Type Safe**: Rigorous Python implementation with `NewType` safety for sensitive data.
+- **Visual UI**: Enhanced with ASCII banners, custom color themes, and formatted output.
 
-### Features
-- Initialize a vault with a random salt
-- Add entries (name, username, secret)
-- List entries (metadata only)
-- View/decrypt a single entry on demand
-- Delete entries
-- Works fully offline
+## 🚀 Getting Started
 
-### Install
+### Prerequisites
+- Python 3.9+
+
+### Installation
 ```bash
+# Clone the repository
+git clone https://github.com/your-username/pwman-minimal-local-password-manager.git
+cd pwman-minimal-local-password-manager
+
+# Create and activate a virtual environment
 python -m venv .venv
 .venv\Scripts\activate
-pip install -r requirements.txt
+
+# Install the package
+pip install .
 ```
 
 ### Usage
-Run the CLI with Python’s module runner:
+Start the interactive shell:
 ```bash
-python -m src.cli --help
-```
-All commands accept `--db` to point at a specific database path (defaults to `vault.db`).
-
-#### Initialize a vault
-```bash
-python -m src.cli init
-```
-If no vault exists, this creates the SQLite DB and a new 16‑byte random salt, then prints the salt (hex) once with a warning. Copy and store it safely. You may need it if you ever delete the DB and want to re‑create/verify the vault state.
-
-#### Add an entry
-```bash
-python -m src.cli add
-```
-Prompts for: entry name, username, and secret (via getpass). Derives the master key from the stored vault salt and your master password, encrypts the secret with AES‑GCM, and stores `(nonce, ciphertext, tag)` as BLOBs.
-
-#### List entries
-```bash
-python -m src.cli list
-```
-Shows id, name, username, created_at. No secrets are printed.
-
-#### View (decrypt) an entry
-```bash
-python -m src.cli view <id>
-```
-Prompts for your master password, derives the key, decrypts the selected entry, and prints the secret once. If the password is wrong or data is corrupted, you’ll see: "Decryption failed — wrong master password or data corrupted."
-
-#### Delete an entry
-```bash
-python -m src.cli delete <id>
+pwman
 ```
 
-### How it works (short)
+Once inside the shell, use your arrow keys to navigate the menu:
 
-#### Key derivation
-`src/crypto.py` derives a 32‑byte AES key from your master password and the vault salt using Argon2id with:
-- `time_cost = 2`, `memory_cost = 102400` KiB (~100 MiB), `parallelism = 8`, `hash_len = 32`
+#### 📂 Vault Management
+- **Create Vault**: Set a vault name and a master password immediately.
+- **Open Vault**: Switch between your existing `.db` vault files.
+- **Delete Vault**: Permanently remove a vault and all its contents (with safety confirmation).
 
-#### Encryption
-`encrypt(plaintext, key)` uses `AESGCM` with:
-- 12‑byte random nonce per encryption (`os.urandom(12)`)
-- 16‑byte GCM tag
-- Returns `(nonce, ciphertext, tag)`
+#### 🔑 Entry Management
+- **Add Entry**: Securely store a new credential (name, username, secret).
+- **List/View Entries**: Browse your credentials and decrypt secrets on demand.
+- **Delete Entry**: Remove specific credentials from the active vault.
 
-`decrypt(nonce, ciphertext, tag, key)` returns the plaintext or raises `InvalidTag` if authentication fails.
+## 🏗 Architecture
 
-#### Storage schema
-`src/storage.py` manages a SQLite DB with two tables:
-- `vault(id=1, salt BLOB NOT NULL)` — single row storing the vault salt
-- `passwords(id, name, username, nonce BLOB, ciphertext BLOB, tag BLOB, created_at)`
+### Modern Patterns
+- **`Authenticator`**: Centralized logic for master password handling and Argon2id KDF.
+- **`CryptoEngine`**: Class-based AES-256-GCM implementation.
+- **`models.py`**: Explicit type safety for keys, salts, and nonces.
+- **`Session`**: Global state management for tracking the active vault.
 
-Helper functions cover initialization, salt get/set, and CRUD for entries.
+### Technical Specs
+- **KDF**: Argon2id (`time=2`, `memory=100MB`, `parallelism=8`).
+- **Encryption**: AES-256-GCM with 12-byte random nonces (`secrets` module).
+- **Storage**: SQLite DB with BLOB storage for cryptographic components.
 
-### Testing
-Run the unit tests with pytest:
+## 🧪 Testing
+Verify the cryptographic integrity and storage logic:
 ```bash
+pip install ".[dev]"
 pytest -q
 ```
-Included tests (`tests/test_crypto_storage.py`):
-- Round‑trip: derive → encrypt → store → fetch → decrypt == original
-- Invalid key: decrypt with wrong password raises `InvalidTag`
 
-### Security notes
-- The master key is never printed or stored.
-- Decrypted secrets are only printed on explicit `view` and only once.
-- The vault salt is printed once on `init`. Back it up safely if you need it for recovery workflows.
-- Choose a strong master password; Argon2id parameters are set for a solid default, but you can raise time/memory on capable machines.
+## 🔒 Security
+- **No Persistence**: Master keys are only kept in memory during the active derivation/decryption step.
+- **Strong Entropy**: Uses Python's `secrets` module for all random byte generation.
+- **AEAD**: Uses GCM to provide both confidentiality and data integrity.
 
-### Project layout
-```
-src/
-  cli.py       # CLI entrypoint (argparse)
-  crypto.py    # KDF + AES‑GCM encrypt/decrypt helpers
-  storage.py   # SQLite schema and helpers
-tests/
-  test_crypto_storage.py
-```
+---
+*Intended for Windows. Use responsibly.*

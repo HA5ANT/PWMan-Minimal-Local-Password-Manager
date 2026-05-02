@@ -1,0 +1,104 @@
+Metadata-Version: 2.4
+Name: pwman
+Version: 0.1.0
+Summary: Minimal Local Password Manager
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: argon2-cffi==25.1.0
+Requires-Dist: cryptography==47.0.0
+Requires-Dist: colorama==0.4.6
+Provides-Extra: dev
+Requires-Dist: pytest==9.0.3; extra == "dev"
+
+# 🔐 PWMan — Minimal Local Password Manager
+
+PWMan is a lightweight, offline password manager for Windows. It utilizes modern cryptographic primitives and a local SQLite database to keep your credentials secure.
+
+## 🛠 Features
+- **Offline First**: Your data never leaves your machine.
+- **Strong Encryption**: Argon2id for key derivation and AES-256-GCM for authenticated encryption.
+- **Type Safe**: Modern Python implementation with rigorous type safety.
+- **Simple CLI**: Easy-to-use commands for managing your vault.
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Python 3.9+
+
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/your-username/pwman-minimal-local-password-manager.git
+cd pwman-minimal-local-password-manager
+
+# Create and activate a virtual environment
+python -m venv .venv
+.venv\Scripts\activate
+
+# Install dependencies (modern pyproject.toml format)
+pip install .
+```
+
+### Usage
+Run the CLI using the installed entry point:
+```bash
+pwman --help
+```
+*Alternatively, use `python -m src.cli` if not installed.*
+
+#### 1. Initialize Vault
+```bash
+pwman init
+```
+Creates the SQLite DB and a unique 16‑byte random salt. **Backup the printed salt.**
+
+#### 2. Add Credentials
+```bash
+pwman add
+```
+Prompts for name, username, and secret. Encrypts and stores them securely.
+
+#### 3. List entries
+```bash
+pwman list
+```
+Shows metadata for all stored passwords.
+
+#### 4. View / Decrypt
+```bash
+pwman view <id>
+```
+Decrypts and displays the secret for the specified entry.
+
+#### 5. Delete Entry
+```bash
+pwman delete <id>
+```
+
+## 🏗 Architecture
+
+### Modern Patterns
+- **`Authenticator`**: Dedicated class in `src/auth.py` for master password handling and Argon2id KDF.
+- **`CryptoEngine`**: Class-based AES-256-GCM implementation in `src/crypto.py`.
+- **`models.py`**: Explicit type safety using `NewType` for sensitive data (Keys, Salts, Nonces).
+- **`pyproject.toml`**: Modern dependency management.
+
+### Technical Specs
+- **KDF**: Argon2id (`time=2`, `memory=100MB`, `parallelism=8`).
+- **Encryption**: AES-256-GCM with 12-byte random nonces (`secrets` module) and 16-byte tags.
+- **Storage**: SQLite DB with BLOB storage for encrypted components.
+
+## 🧪 Testing
+Verify the cryptographic integrity and storage logic:
+```bash
+pip install ".[dev]"
+pytest -q
+```
+
+## 🔒 Security
+- **No Persistence**: Master keys are only kept in memory during operations.
+- **Entropy**: Uses the `secrets` module for cryptographically strong randomness.
+- **GCM**: Provides both confidentiality and data integrity (AEAD).
+
+---
+*Intended for Windows. Use responsibly.*
